@@ -1,34 +1,87 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+
+import "react-datepicker/dist/react-datepicker.css";
+import LineChartComponent from "./LineChart";
+import PieChartComponent from "./PieChart";
+import Source from "./Source";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [data, setData] = useState([]);
+  const [source, setSource] = useState([]);
+  const fetchData = () => {
+    fetch("https://datausa.io/api/data?drilldowns=Nation&measures=Population")
+      .then((res) => res.json())
+      .then((json) => {
+        setData(json.data);
+        setSource(json.source);
+      })
+      .catch((e) => alert(e));
+  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
+  const [isFiltered, setIsFiltered] = useState(false);
+  const getYear = (date) => new Date(date).getFullYear();
+
+  useEffect(() => {
+    if (getYear(startDate) && getYear(endDate)) {
+      setFilteredData(() =>
+        data.filter(
+          (e) =>
+            e["ID Year"] >= getYear(startDate) &&
+            e["ID Year"] <= getYear(endDate)
+        )
+      );
+      setIsFiltered(true);
+    } else {
+      setIsFiltered(false);
+    }
+  }, [startDate, endDate]);
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="bg-slate-100 justify-center flex flex-col h-screen">
+      {source[0] && <Source source={source} />}
+      <div className="w-1/2 bg-slate-300 h-auto flex justify-center flex-row my-auto mx-auto items-center p-4">
+        <div className="w-1/3">
+          <h1 className="font-bold">Filter by Date Range:</h1>
+        </div>
+        <div className="w-1/3">
+          <label className="justify-start">Start Date</label>
+          <DatePicker
+            showYearDropdown
+            className="bg-slate-100 rounded-md px-1"
+            selected={startDate}
+            onChange={(date) => setStartDate(date)}
+            isClearable
+            placeholderText="Set Start Date!"
+          />
+        </div>
+        <div className="w-1/3">
+          <label className="justify-start">End Date</label>
+          <DatePicker
+            showYearDropdown
+            className="bg-slate-100 rounded-md px-1"
+            selected={endDate}
+            onChange={(date) => setEndDate(date)}
+            isClearable
+            placeholderText="Set End Date!"
+          />
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
+      <div className="flex flex-row justify-center flex-wrap">
+        {data[0] && (
+          <LineChartComponent data={isFiltered ? filteredData : data} />
+        )}
+        {data[0] && (
+          <PieChartComponent data={isFiltered ? filteredData : data} />
+        )}
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
